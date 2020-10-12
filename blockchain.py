@@ -1,5 +1,3 @@
-import hashlib
-import json
 from time import time
 from block import Block
 

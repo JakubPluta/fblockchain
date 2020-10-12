@@ -1,81 +1,119 @@
 import hashlib
 import json
 from time import time
+from block import Block
 
 
 class Blockchain:
     """
         Each block should contain within itself, hash of the previous Block.
         It's an idea that gives immutability for block chain. It's impossible to break a block chain by hackers.
+
+        The number of zeroes specified in the constraint determines the difficulty of our proof of work algorithm
+        (the greater the number of zeroes, the harder it is to figure out the nonce).
+
     """
+
+    DIFFICULTY = 2
 
     def __init__(self):
         self._chain = []
-        self._current_transactions = []
+        self._unconfirmed_transactions = []
+        self.generate_genesis_block()
 
-    def new_block(self, proof, previous_hash=None):
+    def generate_genesis_block(self):
         """
-            Creates a new block in our block chain.
+        A function to generate genesis block and appends it to
+        the chain. The block has index 0, previous_hash as 0, and
+        a valid hash.
+        """
+        genesis_block = Block(0, [], time(), "0")
+        genesis_block.hash = genesis_block.calculate_hash()
+        self._chain.append(genesis_block)
 
-        :param proof: PoW proof
-        :param previous_hash: previous block hash
-        :return: dict with new block with keys
-            block.keys()  = 'index',timestamp','transactions', 'proof', 'previous_hash'
-
+    def add_block(self, block: Block, proof):
+        """Adds block to the chain after verification.
+        Verification includes:
+            * Checking if the proof is valid.
+            * The previous_hash referred in the block and the hash of a latest block in
         """
 
-        block = {
-            'index': len(self._chain) + 1,
-            'timestamp': time(),
-            'transactions': self._current_transactions,
-            'proof': proof,
-            'previous_hash': previous_hash or self.hash(self._chain[-1]),
-        }
+        previous_hash = self.last_block.hash
 
-        """Reset our list of transactions, set it to empty list"""
-        self._current_transactions = list()
+        if previous_hash != block._previous_hash:
+            return False
 
-        """add created block to our chain list"""
+        if not Blockchain.is_valid_proof(block, proof):
+            return False
+
+        block.hash = proof
         self._chain.append(block)
-        return block
+        return True
 
-    def new_transaction(self, sender: str, recipient: str, amount: [int,float]) -> int:
+    def add_new_transaction(self, transaction):
+        self._unconfirmed_transactions.append(transaction)
+
+    def mine(self):
         """
-            Adding transactions to a Block.
-                * we add a transaction to the our list, our method
-                returns the index of the block which the transaction
-                will be added to—the next one to be mined.
-
-
-        :param sender: Address of the sender
-        :param recipient: Address of the recipient
-        :param amount: Amount of transaction (int, float)
-        :return: int - > Index of the block
+        Interface to add the pending
+        transactions to the blockchain by adding them to the block
+        and figuring out Proof Of Work.
+        :return:
         """
+        if not self._unconfirmed_transactions:
+            return False
+        last_block = self.last_block
 
-        self._current_transactions.append(
-            {
-                'sender': sender,
-                'recipient': recipient,
-                'amount': amount
+        new_block = Block(index=last_block._index + 1,
+                          transactions=self._unconfirmed_transactions,
+                          timestamp=time(),
+                          previous_hash=last_block.hash)
 
-            }
-        )
-        return self.last_block['index'] + 1
-
-    @staticmethod
-    def create_hash(block):
-        """
-        Create SHA-256 hash of a block
-        :param block: dict
-        :return: hash
-        """
-
-        """Convert block dict into string, and sort to have consistency in hashes"""
-        block = json.dumps(block, sort_keys=True).encode()
-
-        return hashlib.sha256(block).hexdigest()
+        proof = self.proof_of_work(new_block)
+        self.add_block(new_block, proof)
+        self._unconfirmed_transactions = []
+        return new_block._index
 
     @property
     def last_block(self):
+        """
+        :return: Most recent block in the chain. Note that the chain will always consist
+        of at least one block (i.e., genesis block)
+        """
         return self._chain[-1]
+
+    @staticmethod
+    def proof_of_work(block):
+        """
+        If we change the previous block, the hashes of all the blocks that follow can be re-computed quite easily to
+        create a different valid blockchain.To prevent this, we need to create asymmetry in efforts of hash functions.
+
+        Instead of accepting any hash for the block, we need to add some constraint to it.
+
+        Constraint:  our hash should start with 'n leading zeroes' where n can be any positive integer.
+        :param block:
+        :return:
+
+
+        A nonce is a number that we can keep on changing until we get a hash that satisfies our constraint. 
+
+        The nonce satisfying the constraint serves as proof that some computation has been performed.
+        """
+
+        block._nonce = 0
+        computed_hash = block.calculate_hash()
+
+        while not computed_hash.startswith('0' * Blockchain.DIFFICULTY):
+            block._nonce += 1
+            computed_hash = block.calculate_hash()
+        return computed_hash
+
+    @staticmethod
+    def is_valid_proof(block, block_hash):
+        """
+        Check if block_hash is valid hash of block and satisfies the difficulty criteria.
+        """
+        return (block_hash.startswith('0' * Blockchain.DIFFICULTY) and
+                block_hash == block.calculate_hash())
+
+

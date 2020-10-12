@@ -21,6 +21,10 @@ class Blockchain:
         self._unconfirmed_transactions = []
         self.generate_genesis_block()
 
+    @property
+    def chain(self):
+        return self._chain
+
     def generate_genesis_block(self):
         """
         A function to generate genesis block and appends it to
@@ -116,4 +120,23 @@ class Blockchain:
         return (block_hash.startswith('0' * Blockchain.DIFFICULTY) and
                 block_hash == block.calculate_hash())
 
+    def check_chain_validity(cls, chain):
+        """
+        A helper method to check if the entire blockchain is valid.
+        """
+        result = True
+        previous_hash = "0"
+
+        # Iterate through every block
+        for block in chain:
+            block_hash = block.hash
+            # remove the hash field to recompute the hash again
+            # using `compute_hash` method.
+            delattr(block, "hash")
+            if not cls.is_valid_proof(block, block.hash) or \
+                    previous_hash != block.previous_hash:
+                result = False
+                break
+            block.hash, previous_hash = block_hash, block_hash
+        return result
 

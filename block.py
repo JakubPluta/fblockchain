@@ -22,15 +22,14 @@ class Block:
         self._previous_hash = previous_hash
         self._nonce = 0
 
-    @staticmethod
-    def calculate_hash(block):
+    def calculate_hash(self):
         """
 
         A hash function is a function that takes data of any size and produces data of a fixed size from it (a hash),
         which is generally used to identify the input.
 
         """
-        block = json.dumps(block, sort_keys=True)
+        block = json.dumps(self.__dict__, sort_keys=True)
         return hashlib.sha256(block.encode()).hexdigest()
 
     @property

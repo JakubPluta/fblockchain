@@ -10,7 +10,7 @@ def parse_timestamp_to_string(epoch_time):
     return datetime.datetime.fromtimestamp(epoch_time).strftime('%H:%M')
 
 
-NODE_ADDRESS = "http://127.0.0.1:5000"
+NODE_ADDRESS = "http://127.0.0.1:8000"
 posts = []
 
 
@@ -23,9 +23,9 @@ def get_posts():
         content = []
         chain = json.loads(response.content)
         for block in chain["chain"]:
-            for tx in block["transactions"]:
-                tx["index"] = block["index"]
-                tx["hash"] = block["previous_hash"]
+            for tx in block["_transactions"]:
+                tx["index"] = block["_index"]
+                tx["hash"] = block["_previous_hash"]
                 content.append(tx)
 
         global posts

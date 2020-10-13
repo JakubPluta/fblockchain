@@ -37,7 +37,7 @@ def get_posts():
 def index():
     get_posts()
     return render_template('index.html',
-                           title='YourNet: Decentralized '
+                           title='Blockchain protocol: '
                                  'content sharing',
                            posts=posts,
                            node_address=NODE_ADDRESS,
